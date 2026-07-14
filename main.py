@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException 
+from schema import CreateTicket, Ticket, UpdateTicket
 
 app = FastAPI()
 
@@ -73,3 +74,51 @@ tickets = [
         "comments": []
     }
 ]
+
+
+@app.get("/tickets", response_model=list[Ticket])
+async def get_tickets():
+    return tickets
+
+@app.get("/tickets/{tickets_id}", response_model=Ticket)
+async def get_single_ticket(tickets_id: int):
+    for ticket in tickets:
+        if ticket.get("ticket_id") == tickets_id:
+            return ticket
+    raise HTTPException(status_code=404, detail="Couldn't find the ID")
+
+
+@app.post("/tickets", status_code=201,response_model= Ticket)
+async def create_ticket(create_ticket: CreateTicket):
+    new_id = max((ticket.get("ticket_id") for ticket in tickets), default=0) +1
+    new_post = {
+        "ticket_id": new_id,
+        **create_ticket.model_dump(mode="json"),
+        "comments": []
+    }
+
+    tickets.append(new_post)
+
+    return new_post
+
+
+@app.patch("/tickets/{tickets_id}", response_model = Ticket)
+async def update_ticket(tickets_id: int, update: UpdateTicket):
+    for ticket in tickets:
+        if ticket.get("ticket_id") == tickets_id:
+            update_data = update.model_dump(exlude_unset=True, mode="json")
+            
+            ticket.update(update_data)
+            return ticket
+    raise HTTPException(status_code=404, detail="Couldn't find the ID")
+
+
+@app.delete("/tickets/{ticket_id}", response_model=Ticket)
+async def delete_ticket(ticket_id: int):
+    for ticket in tickets:
+        if ticket.get("ticket_id") == ticket_id:
+            tickets.remove(ticket)
+            return ticket
+    raise HTTPException(status_code=404, detail="Couldn't find the ID")
+
+        
