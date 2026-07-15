@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException 
-from schema import CreateTicket, Ticket, UpdateTicket
+from schema import CreateComment, CreateTicket, Ticket, UpdateTicket, Comment
 
 app = FastAPI()
 
@@ -122,3 +122,33 @@ async def delete_ticket(ticket_id: int):
     raise HTTPException(status_code=404, detail="Couldn't find the ID")
 
         
+
+
+@app.post(
+    "/tickets/{ticket_id}/comments",
+    status_code=201,
+    response_model=Comment
+)
+async def create_comment(ticket_id: int, add_comment: CreateComment):
+    for ticket in tickets:
+        if ticket.get("ticket_id") == ticket_id:
+            comments = ticket["comments"]
+
+            new_comment_id = max(
+                (comment["comment_id"] for comment in comments),
+                default=0
+            ) + 1
+
+            new_comment = {
+                "comment_id": new_comment_id,
+                **add_comment.model_dump(mode="json")
+            }
+
+            comments.append(new_comment)
+
+            return new_comment
+
+    raise HTTPException(
+        status_code=404,
+        detail="Couldn't find the ticket"
+    )
