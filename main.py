@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException 
-from schema import CreateComment, CreateTicket, Ticket, UpdateTicket, Comment
+from schema import CreateComment, CreateTicket, Ticket, TicketBase, UpdateTicket, Comment, TicketStatus, TicketPriority
 
 app = FastAPI()
 
@@ -49,7 +49,7 @@ tickets = [
         "status": "resolved",
         "priority": "medium",
         "customer_email": "layla@example.com",
-        "assigned_to": "David",
+        "assigned_to"  : "David",
         "comments": [
             {
                 "comment_id": 1,
@@ -77,8 +77,30 @@ tickets = [
 
 
 @app.get("/tickets", response_model=list[Ticket])
-async def get_tickets():
-    return tickets
+async def get_tickets(
+    status: TicketStatus | None = None,
+    priority: TicketPriority | None = None,
+    assigned_to: str | None = None,
+    limit: int = 10,
+    offset: int = 0
+):
+    results = []
+
+    for ticket in tickets:
+        if status is not None and ticket.get("status") != status:
+            continue
+
+        if priority is not None and ticket.get("priority") != priority:
+            continue
+
+        if assigned_to is not None and ticket.get("assigned_to") != assigned_to:
+            continue
+
+        results.append(ticket)
+
+    return results[offset:offset + limit]
+
+
 
 @app.get("/tickets/{tickets_id}", response_model=Ticket)
 async def get_single_ticket(tickets_id: int):
